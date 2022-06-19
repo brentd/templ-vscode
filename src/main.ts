@@ -13,8 +13,12 @@ import {
 import { LanguageClient } from 'vscode-languageclient/node';
 
 export async function activate(ctx: vscode.ExtensionContext) {
+    const config = loadConfiguration()
+    if (config.goplsEnabled !== true) {
+        return
+    }
     try {
-        const lc = await buildLanguageClient()
+        const lc = await buildLanguageClient(config)
         await lc.start()
     } catch (err) {
         const msg = err && err as Error ? (err as Error).message : 'unknown'
@@ -23,6 +27,7 @@ export async function activate(ctx: vscode.ExtensionContext) {
 }
 
 interface Configuration {
+    goplsEnabled: boolean
     goplsLog: string
     goplsRPCTrace: boolean
     log: string
@@ -32,6 +37,7 @@ interface Configuration {
 const loadConfiguration = (): Configuration => {
     const c = vscode.workspace.getConfiguration('templ')
     return {
+        goplsEnabled: c.get("goplsEnabled") ? true : false,
         goplsLog: c.get("goplsLog") || "",
         goplsRPCTrace: c.get("goplsRPCTrace") ? true : false,
         log: c.get("log") || "",
@@ -39,12 +45,11 @@ const loadConfiguration = (): Configuration => {
     }
 }
 
-export async function buildLanguageClient(): Promise<LanguageClient> {
+export async function buildLanguageClient(config: Configuration): Promise<LanguageClient> {
     const documentSelector = [
         { language: 'templ', scheme: 'file' },
     ]
 
-    const config = loadConfiguration()
     const args: Array<string> = ["lsp"]
     if(config.goplsLog.length > 0) {
         args.push(`-goplsLog=${config.goplsLog}`)
